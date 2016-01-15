@@ -682,7 +682,7 @@ void msm_isp_update_framedrop_reg(struct vfe_device *vfe_dev,
 		 * set to what we want
 		 */
 		if (stream_info->current_framedrop_period !=
-			stream_info->activated_framedrop_period) {
+			stream_info->requested_framedrop_period) {
 			msm_isp_cfg_framedrop_reg(vfe_dev, stream_info);
 		}
 		spin_unlock_irqrestore(&stream_info->lock, flags);
@@ -2077,8 +2077,9 @@ int msm_isp_drop_frame(struct vfe_device *vfe_dev,
 				__func__, done_buf->bufq_handle);
 			return -EINVAL;
 		}
-		sof_info->reg_update_fail_mask_ext |=
-			(bufq->bufq_handle & 0xFF);
+		sof_info->reg_update_fail_mask |=
+			1 << (bufq->bufq_handle & 0xF);
+pattern
 	}
 	spin_unlock_irqrestore(&stream_info->lock, flags);
 
