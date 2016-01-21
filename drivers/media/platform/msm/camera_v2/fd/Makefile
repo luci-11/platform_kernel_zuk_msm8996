@@ -3,6 +3,9 @@ ccflags-y += -Idrivers/media/video/msm
 ccflags-y += -Idrivers/media/platform/msm/camera_v2/common
 ccflags-y += -Idrivers/media/platform/msm/camera_v2
 ccflags-y += -Idrivers/media/platform/msm/camera_v2/pproc/cpp
+<<<<<<< HEAD
 ccflags-y += -Idrivers/media/platform/msm/camera_v2/msm_buf_mgr/
+=======
+>>>>>>> 7ae22ee... msm: camera: fd: Add CPP VBIF error handling
 
 obj-$(CONFIG_MSM_FD) += msm_fd_dev.o msm_fd_hw.o
