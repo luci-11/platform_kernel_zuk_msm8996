@@ -84,26 +84,7 @@
 	if (IS_BATCH_BUFFER_ON_PREVIEW(new_frame)) \
 		iden = swap_iden; \
 }
-
-#define SWAP_BUF_INDEX_FOR_BATCH_ON_PREVIEW(new_frame, buff_mgr_info, \
-	cur_index, swap_index) { \
-	if (IS_BATCH_BUFFER_ON_PREVIEW(new_frame)) \
-		buff_mgr_info.index = swap_index; \
-	else \
-		buff_mgr_info.index = cur_index; \
-}
-
-/*
- * Default value for get buf to be used - 0xFFFFFFFF
- * 0 is a valid index
- * no valid index from userspace, use last buffer from queue.
- */
-#define DEFAULT_OUTPUT_BUF_INDEX 0xFFFFFFFF
-#define IS_DEFAULT_OUTPUT_BUF_INDEX(index) \
-	((index == DEFAULT_OUTPUT_BUF_INDEX) ? 1 : 0)
-
 static struct msm_cpp_vbif_data cpp_vbif;
-
 static int msm_cpp_buffer_ops(struct cpp_device *cpp_dev,
 	uint32_t buff_mgr_ops, uint32_t ids, void *arg);
 
@@ -172,7 +153,7 @@ void msm_cpp_vbif_register_error_handler(void *dev,
 	int (*client_vbif_error_handler)(void *, uint32_t))
 {
 	if (dev == NULL || client >= VBIF_CLIENT_MAX) {
-		pr_err("%s: Fail to register handler! dev = %pK,client %d\n",
+		pr_err("%s: Fail to register handler! dev = %p, client %d\n",
 			__func__, dev, client);
 		return;
 	}
@@ -1075,7 +1056,7 @@ int cpp_vbif_error_handler(void *dev, uint32_t vbif_error)
 	struct cpp_device *cpp_dev = NULL;
 
 	if (dev == NULL || vbif_error >= CPP_VBIF_ERROR_MAX) {
-		pr_err("failed: dev %pK,vbif error %d\n", dev, vbif_error);
+		pr_err("failed: dev %p, vbif error %d\n", dev, vbif_error);
 		return -EINVAL;
 	}
 
