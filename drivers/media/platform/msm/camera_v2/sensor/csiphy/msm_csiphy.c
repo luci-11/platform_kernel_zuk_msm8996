@@ -48,7 +48,7 @@
 #define CSI_3PHASE_HW                               1
 #define MAX_LANES                                   4
 #define CLOCK_OFFSET                              0x700
-#define CSIPHY_SOF_DEBUG_COUNT                      2
+#define CSIPHY_SOF_DEBUG_COUNT                      3
 
 #undef CDBG
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
@@ -679,10 +679,8 @@ static irqreturn_t msm_csiphy_irq(int irq_num, void *data)
 	if (csiphy_dev->csiphy_sof_debug == SOF_DEBUG_ENABLE) {
 		if (csiphy_dev->csiphy_sof_debug_count < CSIPHY_SOF_DEBUG_COUNT)
 			csiphy_dev->csiphy_sof_debug_count++;
-		else {
-			msm_csiphy_disable_irq(csiphy_dev);
+		else
 			return IRQ_HANDLED;
-		}
 	}
 
 	for (i = 0; i < csiphy_dev->num_irq_registers; i++) {
@@ -1076,17 +1074,22 @@ static int msm_csiphy_release(struct csiphy_device *csiphy_dev, void *arg)
 			mipi_csiphy_glbl_pwr_cfg_addr);
 	}
 	if (csiphy_dev->csiphy_sof_debug == SOF_DEBUG_ENABLE) {
-		rc = msm_camera_enable_irq(csiphy_dev->irq, false);
+		csiphy_dev->csiphy_sof_debug = SOF_DEBUG_DISABLE;
+		disable_irq(csiphy_dev->irq->start);
 	}
-
-	msm_camera_clk_enable(&csiphy_dev->pdev->dev,
-		csiphy_dev->csiphy_clk_info, csiphy_dev->csiphy_clk,
-		csiphy_dev->num_clk, false);
-	if (csiphy_dev->csiphy_3phase == CSI_3PHASE_HW &&
-		csiphy_dev->csi_3phase == 1) {
-		msm_camera_clk_enable(&csiphy_dev->pdev->dev,
-			csiphy_dev->csiphy_3p_clk_info,
-			csiphy_dev->csiphy_3p_clk, 2, false);
+	if (csiphy_dev->hw_dts_version <= CSIPHY_VERSION_V22) {
+		msm_cam_clk_enable(&csiphy_dev->pdev->dev,
+			csiphy_dev->csiphy_clk_info, csiphy_dev->csiphy_clk,
+			csiphy_dev->num_clk, 0);
+	} else if (csiphy_dev->hw_dts_version >= CSIPHY_VERSION_V30) {
+		msm_cam_clk_enable(&csiphy_dev->pdev->dev,
+			csiphy_dev->csiphy_clk_info, csiphy_dev->csiphy_clk,
+			csiphy_dev->num_clk, 0);
+		if (csiphy_dev->csiphy_3phase == CSI_3PHASE_HW)
+			msm_cam_clk_enable(&csiphy_dev->pdev->dev,
+				csiphy_dev->csiphy_3p_clk_info,
+				csiphy_dev->csiphy_3p_clk, 2, 0);
+		iounmap(csiphy_dev->clk_mux_base);
 	}
 
 	csiphy_dev->csiphy_state = CSIPHY_POWER_DOWN;
@@ -1182,7 +1185,7 @@ static long msm_csiphy_subdev_ioctl(struct v4l2_subdev *sd,
 			break;
 		if (csiphy_dev->csiphy_sof_debug == SOF_DEBUG_DISABLE) {
 			csiphy_dev->csiphy_sof_debug = SOF_DEBUG_ENABLE;
-			rc = msm_camera_enable_irq(csiphy_dev->irq, true);
+			enable_irq(csiphy_dev->irq->start);
 		}
 		break;
 	case MSM_SD_UNNOTIFY_FREEZE:
@@ -1190,7 +1193,7 @@ static long msm_csiphy_subdev_ioctl(struct v4l2_subdev *sd,
 				!csiphy_dev->ref_count)
 			break;
 		csiphy_dev->csiphy_sof_debug = SOF_DEBUG_DISABLE;
-		rc = msm_camera_enable_irq(csiphy_dev->irq, false);
+		disable_irq(csiphy_dev->irq->start);
 		break;
 	default:
 		pr_err_ratelimited("%s: command not found\n", __func__);
