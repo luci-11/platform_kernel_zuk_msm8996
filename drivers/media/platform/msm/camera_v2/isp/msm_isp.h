@@ -157,9 +157,6 @@ struct msm_vfe_irq_ops {
 		uint32_t irq_status0, uint32_t irq_status1,
 		uint32_t pingpong_status,
 		struct msm_isp_timestamp *ts);
-	void (*config_irq)(struct vfe_device *vfe_dev,
-		uint32_t irq_status0, uint32_t irq_status1,
-		enum msm_isp_irq_operation);
 };
 
 struct msm_vfe_axi_ops {
@@ -768,13 +765,11 @@ struct vfe_device {
 	uint32_t isp_raw0_debug;
 	uint32_t isp_raw1_debug;
 	uint32_t isp_raw2_debug;
+	uint8_t is_camif_raw_crop_supported;
 
 	/* irq info */
 	uint32_t irq0_mask;
 	uint32_t irq1_mask;
-	/* before halt irq info */
-	uint32_t recovery_irq0_mask;
-	uint32_t recovery_irq1_mask;
 };
 
 struct vfe_parent_device {
