@@ -1464,15 +1464,8 @@ static void msm_vfe40_update_camif_state(struct vfe_device *vfe_dev,
 		msm_camera_io_w_mb(0x4, vfe_dev->vfe_base + 0x2F4);
 		msm_camera_io_w_mb(0x1, vfe_dev->vfe_base + 0x2F4);
 		vfe_dev->axi_data.src_info[VFE_PIX_0].active = 1;
-	} else if (update_state == DISABLE_CAMIF ||
-		DISABLE_CAMIF_IMMEDIATELY == update_state) {
-		msm_vfe40_config_irq(vfe_dev, 0, 0x81,
-				MSM_ISP_IRQ_DISABLE);
-		val = msm_camera_io_r(vfe_dev->vfe_base + 0x464);
-		/* disable danger signal */
-		msm_camera_io_w_mb(val & ~(1 << 8), vfe_dev->vfe_base + 0x464);
-		msm_camera_io_w_mb((update_state == DISABLE_CAMIF ? 0x0 : 0x6),
-				vfe_dev->vfe_base + 0x2F4);
+	} else if (update_state == DISABLE_CAMIF) {
+		msm_camera_io_w_mb(0x0, vfe_dev->vfe_base + 0x2F4);
 		vfe_dev->axi_data.src_info[VFE_PIX_0].active = 0;
 		/* testgen OFF*/
 		if (vfe_dev->axi_data.src_info[VFE_PIX_0].input_mux == TESTGEN)
