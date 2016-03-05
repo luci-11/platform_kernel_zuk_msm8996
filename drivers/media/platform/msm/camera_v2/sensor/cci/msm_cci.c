@@ -2018,7 +2018,8 @@ static int msm_cci_probe(struct platform_device *pdev)
 		rc = -ENODEV;
 		goto cci_no_resource;
 	}
-	new_cci_dev->irq = msm_camera_get_irq(pdev, "cci");
+	new_cci_dev->irq = platform_get_resource_byname(pdev,
+					IORESOURCE_IRQ, "cci");
 	if (!new_cci_dev->irq) {
 		pr_err("%s: no irq resource?\n", __func__);
 		rc = -ENODEV;
@@ -2028,8 +2029,22 @@ static int msm_cci_probe(struct platform_device *pdev)
 		__LINE__,
 		(int) new_cci_dev->irq->start,
 		(int) new_cci_dev->irq->end);
-	rc = msm_camera_register_irq(pdev, new_cci_dev->irq,
-		msm_cci_irq, IRQF_TRIGGER_RISING, "cci", new_cci_dev);
+	new_cci_dev->io = request_mem_region(new_cci_dev->mem->start,
+		resource_size(new_cci_dev->mem), pdev->name);
+	if (!new_cci_dev->io) {
+		pr_err("%s: no valid mem region\n", __func__);
+		rc = -EBUSY;
+		goto cci_no_resource;
+	}
+
+	new_cci_dev->base = ioremap(new_cci_dev->mem->start,
+		resource_size(new_cci_dev->mem));
+	if (!new_cci_dev->base) {
+		rc = -ENOMEM;
+		goto cci_release_mem;
+	}
+	rc = request_irq(new_cci_dev->irq->start, msm_cci_irq,
+		IRQF_TRIGGER_RISING, "cci", new_cci_dev);
 	if (rc < 0) {
 		pr_err("%s: irq request fail\n", __func__);
 		rc = -EBUSY;
