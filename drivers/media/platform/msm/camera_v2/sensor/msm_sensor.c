@@ -1557,6 +1557,19 @@ int32_t msm_sensor_init_default_params(struct msm_sensor_ctrl_t *s_ctrl)
 	if (!s_ctrl->sensor_v4l2_subdev_ops)
 		s_ctrl->sensor_v4l2_subdev_ops = &msm_sensor_subdev_ops;
 
+	/* Initialize clock info */
+	clk_info = kzalloc(sizeof(cam_8974_clk_info), GFP_KERNEL);
+	if (!clk_info) {
+		pr_err("%s:%d failed no memory clk_info %pK\n", __func__,
+			__LINE__, clk_info);
+		rc = -ENOMEM;
+		goto FREE_CCI_CLIENT;
+	}
+	memcpy(clk_info, cam_8974_clk_info, sizeof(cam_8974_clk_info));
+	s_ctrl->sensordata->power_info.clk_info = clk_info;
+	s_ctrl->sensordata->power_info.clk_info_size =
+		ARRAY_SIZE(cam_8974_clk_info);
+
 	/* Update sensor mount angle and position in media entity flag */
 	mount_pos = s_ctrl->sensordata->sensor_info->position << 16;
 	mount_pos = mount_pos | ((s_ctrl->sensordata->sensor_info->

@@ -1378,11 +1378,34 @@ static int msm_ispif_init(struct ispif_device *ispif,
 
 	ispif->csid_version = csid_version;
 
-	if (ispif->csid_version >= CSID_VERSION_V30 && !ispif->clk_mux_base) {
-		ispif->clk_mux_base = msm_camera_get_reg_base(ispif->pdev,
-							"csi_clk_mux", 1);
-		if (!ispif->clk_mux_base)
-			return -ENOMEM;
+	if (ispif->csid_version >= CSID_VERSION_V30) {
+		if (!ispif->clk_mux_mem || !ispif->clk_mux_io) {
+			pr_err("%s csi clk mux mem %pK io %pK\n", __func__,
+				ispif->clk_mux_mem, ispif->clk_mux_io);
+			rc = -ENOMEM;
+			return rc;
+		}
+		ispif->clk_mux_base = ioremap(ispif->clk_mux_mem->start,
+			resource_size(ispif->clk_mux_mem));
+		if (!ispif->clk_mux_base) {
+			pr_err("%s: clk_mux_mem ioremap failed\n", __func__);
+			rc = -ENOMEM;
+			return rc;
+		}
+	}
+
+	ispif->base = ioremap(ispif->mem->start,
+		resource_size(ispif->mem));
+	if (!ispif->base) {
+		rc = -ENOMEM;
+		pr_err("%s: nomem\n", __func__);
+		goto end;
+	}
+	rc = request_irq(ispif->irq->start, msm_io_ispif_irq,
+		IRQF_TRIGGER_RISING, "ispif", ispif);
+	if (rc) {
+		pr_err("%s: request_irq error = %d\n", __func__, rc);
+		goto error_irq;
 	}
 
 	rc = cam_config_ahb_clk(NULL, 0,

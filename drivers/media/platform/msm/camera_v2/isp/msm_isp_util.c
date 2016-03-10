@@ -347,10 +347,69 @@ int msm_isp_unsubscribe_event(struct v4l2_subdev *sd, struct v4l2_fh *fh,
 	return msm_isp_process_event_subscription(fh, sub, false);
 }
 
-static int msm_isp_start_fetch_engine(struct vfe_device *vfe_dev,
-	void *arg)
+static int msm_isp_get_max_clk_rate(struct vfe_device *vfe_dev, long *rate)
 {
-	struct msm_vfe_fetch_eng_start *fe_cfg = arg;
+	int           clk_idx = 0;
+	unsigned long max_value = ~0;
+	long          round_rate = 0;
+
+	if (!vfe_dev || !rate) {
+		pr_err("%s:%d failed: vfe_dev %pK rate %pK\n", __func__,
+			__LINE__, vfe_dev, rate);
+		return -EINVAL;
+	}
+
+	*rate = 0;
+	if (!vfe_dev->hw_info) {
+		pr_err("%s:%d failed: vfe_dev->hw_info %pK\n", __func__,
+			__LINE__, vfe_dev->hw_info);
+		return -EINVAL;
+	}
+
+	clk_idx = vfe_dev->hw_info->vfe_clk_idx;
+	if (clk_idx >= vfe_dev->num_clk) {
+		pr_err("%s:%d failed: clk_idx %d max array size %d\n",
+			__func__, __LINE__, clk_idx,
+			vfe_dev->num_clk);
+		return -EINVAL;
+	}
+
+	round_rate = clk_round_rate(vfe_dev->vfe_clk[clk_idx], max_value);
+	if (round_rate < 0) {
+		pr_err("%s: Invalid vfe clock rate\n", __func__);
+		return -EINVAL;
+	}
+
+	*rate = round_rate;
+	return 0;
+}
+
+static int msm_isp_get_clk_rates(struct vfe_device *vfe_dev,
+	struct msm_isp_clk_rates *rates)
+{
+	struct device_node *of_node;
+	int32_t  rc = 0;
+	uint32_t svs = 0, nominal = 0, turbo = 0;
+	if (!vfe_dev || !rates) {
+		pr_err("%s:%d failed: vfe_dev %pK rates %pK\n", __func__,
+			__LINE__, vfe_dev, rates);
+		return -EINVAL;
+	}
+
+	if (!vfe_dev->pdev) {
+		pr_err("%s:%d failed: vfe_dev->pdev %pK\n", __func__,
+			__LINE__, vfe_dev->pdev);
+		return -EINVAL;
+	}
+
+	of_node = vfe_dev->pdev->dev.of_node;
+
+	if (!of_node) {
+		pr_err("%s %d failed: of_node = %pK\n", __func__,
+		 __LINE__, of_node);
+		return -EINVAL;
+	}
+
 	/*
 	 * For Offline VFE, HAL expects same frame id
 	 * for offline output which it requested in do_reprocess.
@@ -2048,6 +2107,12 @@ int msm_isp_open_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 		mutex_unlock(&vfe_dev->core_mutex);
 		mutex_unlock(&vfe_dev->realtime_mutex);
 		return 0;
+	}
+
+	if (vfe_dev->vfe_base) {
+		pr_err("%s:%d invalid params cnt %d base %pK\n", __func__,
+			__LINE__, vfe_dev->vfe_open_cnt, vfe_dev->vfe_base);
+		vfe_dev->vfe_base = NULL;
 	}
 
 	vfe_dev->reset_pending = 0;

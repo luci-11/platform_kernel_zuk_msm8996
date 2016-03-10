@@ -767,9 +767,37 @@ static int msm_csiphy_init(struct csiphy_device *csiphy_dev)
 
 	CDBG("%s:%d called\n", __func__, __LINE__);
 
-	rc = msm_camera_clk_enable(&csiphy_dev->pdev->dev,
-		csiphy_dev->csiphy_clk_info, csiphy_dev->csiphy_clk,
-		csiphy_dev->num_clk, true);
+	if (csiphy_dev->hw_dts_version < CSIPHY_VERSION_V30) {
+		rc = msm_cam_clk_enable(&csiphy_dev->pdev->dev,
+			csiphy_dev->csiphy_clk_info, csiphy_dev->csiphy_clk,
+			csiphy_dev->num_clk, 1);
+	} else if (csiphy_dev->hw_dts_version >= CSIPHY_VERSION_V30) {
+		if (!csiphy_dev->clk_mux_mem || !csiphy_dev->clk_mux_io) {
+			pr_err("%s clk mux mem %pK io %pK\n", __func__,
+				csiphy_dev->clk_mux_mem,
+				csiphy_dev->clk_mux_io);
+			rc = -ENOMEM;
+			goto csiphy_base_fail;
+		}
+		csiphy_dev->clk_mux_base = ioremap(
+			csiphy_dev->clk_mux_mem->start,
+			resource_size(csiphy_dev->clk_mux_mem));
+		if (!csiphy_dev->clk_mux_base) {
+			pr_err("%s: ERROR %d\n", __func__, __LINE__);
+			rc = -ENOMEM;
+			goto csiphy_base_fail;
+		}
+
+		CDBG("%s:%d called\n", __func__, __LINE__);
+		rc = msm_cam_clk_enable(&csiphy_dev->pdev->dev,
+			csiphy_dev->csiphy_clk_info, csiphy_dev->csiphy_clk,
+			csiphy_dev->num_clk, 1);
+	} else {
+		pr_err("%s: ERROR Invalid CSIPHY Version %d",
+			 __func__, __LINE__);
+		rc = -EINVAL;
+		goto csiphy_base_fail;
+	}
 
 	CDBG("%s:%d called\n", __func__, __LINE__);
 	if (rc < 0) {
@@ -842,9 +870,45 @@ static int msm_csiphy_init(struct csiphy_device *csiphy_dev)
 		return rc;
 	}
 
-	rc = msm_camera_clk_enable(&csiphy_dev->pdev->dev,
-		csiphy_dev->csiphy_clk_info, csiphy_dev->csiphy_clk,
-		csiphy_dev->num_clk, true);
+	csiphy_dev->base = ioremap(csiphy_dev->mem->start,
+		resource_size(csiphy_dev->mem));
+	if (!csiphy_dev->base) {
+		pr_err("%s: csiphy_dev->base NULL\n", __func__);
+		csiphy_dev->ref_count--;
+		rc = -ENOMEM;
+		goto ioremap_fail;
+	}
+	if (csiphy_dev->hw_dts_version <= CSIPHY_VERSION_V22) {
+		CDBG("%s:%d called\n", __func__, __LINE__);
+		rc = msm_cam_clk_enable(&csiphy_dev->pdev->dev,
+			csiphy_dev->csiphy_clk_info, csiphy_dev->csiphy_clk,
+			csiphy_dev->num_clk, 1);
+	} else if (csiphy_dev->hw_dts_version >= CSIPHY_VERSION_V30) {
+		if (!csiphy_dev->clk_mux_mem || !csiphy_dev->clk_mux_io) {
+			pr_err("%s clk mux mem %pK io %pK\n", __func__,
+				csiphy_dev->clk_mux_mem,
+				csiphy_dev->clk_mux_io);
+			rc = -ENOMEM;
+			goto csiphy_base_fail;
+		}
+		csiphy_dev->clk_mux_base = ioremap(
+			csiphy_dev->clk_mux_mem->start,
+			resource_size(csiphy_dev->clk_mux_mem));
+		if (!csiphy_dev->clk_mux_base) {
+			pr_err("%s: ERROR %d\n", __func__, __LINE__);
+			rc = -ENOMEM;
+			goto csiphy_base_fail;
+		}
+		CDBG("%s:%d called\n", __func__, __LINE__);
+		rc = msm_cam_clk_enable(&csiphy_dev->pdev->dev,
+			csiphy_dev->csiphy_clk_info, csiphy_dev->csiphy_clk,
+			csiphy_dev->num_clk, 1);
+	} else {
+		pr_err("%s: ERROR Invalid CSIPHY Version %d",
+			 __func__, __LINE__);
+		rc = -EINVAL;
+		goto csiphy_base_fail;
+	}
 
 	CDBG("%s:%d called\n", __func__, __LINE__);
 	if (rc < 0) {
