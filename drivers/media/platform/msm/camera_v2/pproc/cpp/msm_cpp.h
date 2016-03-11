@@ -23,10 +23,6 @@
 #include "msm_sd.h"
 #include "cam_soc_api.h"
 #include "cam_hw_ops.h"
-<<<<<<< HEAD
-#include <media/msmb_pproc.h>
-=======
->>>>>>> 09d437e... msm: cpp: Changes to adapt cpp driver to soc layer
 
 /* hw version info:
   31:28  Major version
@@ -231,11 +227,7 @@ struct cpp_device {
 	struct clk **cpp_clk;
 	struct msm_cam_clk_info *clk_info;
 	size_t num_clks;
-<<<<<<< HEAD
 	struct msm_cam_regulator *cpp_vdd;
-=======
-	struct regulator **cpp_vdd;
->>>>>>> 09d437e... msm: cpp: Changes to adapt cpp driver to soc layer
 	int num_reg;
 	struct mutex mutex;
 	enum cpp_state state;
@@ -294,11 +286,5 @@ int msm_cpp_get_clock_index(struct cpp_device *cpp_dev, const char *clk_name);
 long msm_cpp_set_core_clk(struct cpp_device *cpp_dev, long rate, int idx);
 void msm_cpp_fetch_dt_params(struct cpp_device *cpp_dev);
 int msm_cpp_read_payload_params_from_dt(struct cpp_device *cpp_dev);
-<<<<<<< HEAD
-void msm_cpp_vbif_register_error_handler(void *dev,
-	enum cpp_vbif_client client,
-	int (*client_vbif_error_handler)(void *, uint32_t));
-=======
->>>>>>> 09d437e... msm: cpp: Changes to adapt cpp driver to soc layer
 
 #endif /* __MSM_CPP_H__ */
