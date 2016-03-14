@@ -293,10 +293,6 @@ static int camera_v4l2_streamon(struct file *filep, void *fh,
 	mutex_lock(&sp->lock);
 	rc = vb2_streamon(&sp->vb2_q, buf_type);
 	mutex_unlock(&sp->lock);
-
-	if (msm_is_daemon_present() == false)
-		return 0;
-
 	camera_pack_event(filep, MSM_CAMERA_SET_PARM,
 		MSM_CAMERA_PRIV_STREAM_ON, -1, &event);
 
@@ -319,11 +315,7 @@ static int camera_v4l2_streamoff(struct file *filep, void *fh,
 		camera_pack_event(filep, MSM_CAMERA_SET_PARM,
 			MSM_CAMERA_PRIV_STREAM_OFF, -1, &event);
 
-		rc = msm_post_event(&event, MSM_POST_EVT_TIMEOUT);
-		if (rc < 0)
-			return rc;
-		rc = camera_check_event_status(&event);
-	}
+	rc = camera_check_event_status(&event);
 	mutex_lock(&sp->lock);
 	vb2_streamoff(&sp->vb2_q, buf_type);
 	mutex_unlock(&sp->lock);
