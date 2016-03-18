@@ -398,7 +398,6 @@ int32_t msm_camera_cci_i2c_poll(struct msm_camera_i2c_client *client,
 	enum msm_camera_i2c_data_type data_type, uint32_t delay_ms)
 {
 	int32_t rc = -EFAULT;
-#if 0
 	int32_t i = 0;
 #endif
 	S_I2C_DBG("%s: addr: 0x%x data: 0x%x dt: %d\n",
