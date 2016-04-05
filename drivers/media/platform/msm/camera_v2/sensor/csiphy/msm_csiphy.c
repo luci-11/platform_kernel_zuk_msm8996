@@ -48,7 +48,7 @@
 #define CSI_3PHASE_HW                               1
 #define MAX_LANES                                   4
 #define CLOCK_OFFSET                              0x700
-#define CSIPHY_SOF_DEBUG_COUNT                      3
+#define CSIPHY_SOF_DEBUG_COUNT                      2
 
 #undef CDBG
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
@@ -679,8 +679,10 @@ static irqreturn_t msm_csiphy_irq(int irq_num, void *data)
 	if (csiphy_dev->csiphy_sof_debug == SOF_DEBUG_ENABLE) {
 		if (csiphy_dev->csiphy_sof_debug_count < CSIPHY_SOF_DEBUG_COUNT)
 			csiphy_dev->csiphy_sof_debug_count++;
-		else
+		else {
+			msm_csiphy_disable_irq(csiphy_dev);
 			return IRQ_HANDLED;
+		}
 	}
 
 	for (i = 0; i < csiphy_dev->num_irq_registers; i++) {
@@ -1074,7 +1076,6 @@ static int msm_csiphy_release(struct csiphy_device *csiphy_dev, void *arg)
 			mipi_csiphy_glbl_pwr_cfg_addr);
 	}
 	if (csiphy_dev->csiphy_sof_debug == SOF_DEBUG_ENABLE) {
-		csiphy_dev->csiphy_sof_debug = SOF_DEBUG_DISABLE;
 		disable_irq(csiphy_dev->irq->start);
 	}
 	if (csiphy_dev->hw_dts_version <= CSIPHY_VERSION_V22) {
