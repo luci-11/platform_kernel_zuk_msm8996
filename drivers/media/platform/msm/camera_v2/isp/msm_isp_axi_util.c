@@ -2809,6 +2809,7 @@ static int msm_isp_start_axi_stream(struct vfe_device *vfe_dev,
 		vfe_dev->hw_info->vfe_ops.core_ops.
 			update_camif_state(vfe_dev, camif_update);
 		vfe_dev->axi_data.camif_state = CAMIF_ENABLE;
+		vfe_dev->common_data->dual_vfe_res->epoch_sync_mask = 0;
 	}
 
 	if (wait_for_complete) {
