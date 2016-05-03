@@ -83,7 +83,26 @@
 	if (IS_BATCH_BUFFER_ON_PREVIEW(new_frame)) \
 		iden = swap_iden; \
 }
+
+#define SWAP_BUF_INDEX_FOR_BATCH_ON_PREVIEW(new_frame, buff_mgr_info, \
+	cur_index, swap_index) { \
+	if (IS_BATCH_BUFFER_ON_PREVIEW(new_frame)) \
+		buff_mgr_info.index = swap_index; \
+	else \
+		buff_mgr_info.index = cur_index; \
+}
+
+/*
+ * Default value for get buf to be used - 0xFFFFFFFF
+ * 0 is a valid index
+ * no valid index from userspace, use last buffer from queue.
+ */
+#define DEFAULT_OUTPUT_BUF_INDEX 0xFFFFFFFF
+#define IS_DEFAULT_OUTPUT_BUF_INDEX(index) \
+	((index == DEFAULT_OUTPUT_BUF_INDEX) ? 1 : 0)
+
 static struct msm_cpp_vbif_data cpp_vbif;
+
 static int msm_cpp_buffer_ops(struct cpp_device *cpp_dev,
 	uint32_t buff_mgr_ops, uint32_t ids, void *arg);
 
@@ -827,7 +846,7 @@ static int cpp_init_hardware(struct cpp_device *cpp_dev)
 		}
 		rc = msm_cam_buf_mgr_register_ops(&cpp_dev->buf_mgr_ops);
 		if (rc < 0) {
-			pr_err("buf mngr init failed\n");
+			pr_err("buf mngr req ops failed\n");
 			msm_camera_unregister_irq(cpp_dev->pdev,
 				cpp_dev->irq, cpp_dev);
 			goto req_irq_fail;
@@ -898,12 +917,6 @@ static void cpp_release_hardware(struct cpp_device *cpp_dev)
 {
 	int32_t rc;
 	if (cpp_dev->state != CPP_STATE_BOOT) {
-		rc = msm_cpp_buffer_ops(cpp_dev,
-			VIDIOC_MSM_BUF_MNGR_DEINIT, NULL);
-		if (rc < 0) {
-			pr_err("error in buf mngr deinit\n");
-			rc = -EINVAL;
-		}
 		msm_camera_unregister_irq(cpp_dev->pdev, cpp_dev->irq, cpp_dev);
 		tasklet_kill(&cpp_dev->cpp_tasklet);
 		atomic_set(&cpp_dev->irq_cnt, 0);
