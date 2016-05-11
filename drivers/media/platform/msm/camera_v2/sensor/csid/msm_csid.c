@@ -194,9 +194,20 @@ static void msm_csid_set_debug_reg(struct csid_device *csid_dev,
 	struct msm_camera_csid_params *csid_params) {}
 #endif
 
-static void msm_csid_set_sof_freeze_debug_reg(struct csid_device *csid_dev)
+static void msm_csid_set_sof_freeze_debug_reg(
+	struct csid_device *csid_dev, uint8_t irq_enable)
 {
 	uint32_t val = 0;
+
+	if (!irq_enable) {
+		val = msm_camera_io_r(csid_dev->base +
+			csid_dev->ctrl_reg->csid_reg.csid_irq_status_addr);
+		msm_camera_io_w(val, csid_dev->base +
+			csid_dev->ctrl_reg->csid_reg.csid_irq_clear_cmd_addr);
+		msm_camera_io_w(0, csid_dev->base +
+			csid_dev->ctrl_reg->csid_reg.csid_irq_mask_addr);
+		return;
+	}
 
 	if (csid_dev->csid_3p_enabled == 1) {
 		val = ((1 << csid_dev->current_csid_params.lane_cnt) - 1) <<
@@ -771,13 +782,14 @@ static long msm_csid_subdev_ioctl(struct v4l2_subdev *sd,
 			break;
 		if (csid_dev->csid_sof_debug == SOF_DEBUG_DISABLE) {
 			csid_dev->csid_sof_debug = SOF_DEBUG_ENABLE;
-			msm_csid_set_sof_freeze_debug_reg(csid_dev);
+			msm_csid_set_sof_freeze_debug_reg(csid_dev, true);
 		}
 		break;
 	case MSM_SD_UNNOTIFY_FREEZE:
 		if (csid_dev->csid_state != CSID_POWER_UP)
 			break;
 		csid_dev->csid_sof_debug = SOF_DEBUG_DISABLE;
+		msm_csid_set_sof_freeze_debug_reg(csid_dev, false);
 		break;
 	case VIDIOC_MSM_CSID_RELEASE:
 	case MSM_SD_SHUTDOWN:
@@ -927,13 +939,14 @@ static long msm_csid_subdev_ioctl32(struct v4l2_subdev *sd,
 			break;
 		if (csid_dev->csid_sof_debug == SOF_DEBUG_DISABLE) {
 			csid_dev->csid_sof_debug = SOF_DEBUG_ENABLE;
-			msm_csid_set_sof_freeze_debug_reg(csid_dev);
+			msm_csid_set_sof_freeze_debug_reg(csid_dev, true);
 		}
 		break;
 	case MSM_SD_UNNOTIFY_FREEZE:
 		if (csid_dev->csid_state != CSID_POWER_UP)
 			break;
 		csid_dev->csid_sof_debug = SOF_DEBUG_DISABLE;
+		msm_csid_set_sof_freeze_debug_reg(csid_dev, false);
 		break;
 	case VIDIOC_MSM_CSID_RELEASE:
 	case MSM_SD_SHUTDOWN:
