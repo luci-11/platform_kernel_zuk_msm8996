@@ -1022,7 +1022,7 @@ static void ramdump_work_handler(struct work_struct *ramdump)
 	struct device *dev = NULL;
 
 #if !defined(HIF_SDIO)
-#ifdef WLAN_DEBUG
+#ifdef DEBUG
 	int ret;
 #endif
 #endif

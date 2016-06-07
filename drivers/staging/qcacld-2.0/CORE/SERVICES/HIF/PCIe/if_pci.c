@@ -2811,7 +2811,6 @@ __hif_pci_suspend(struct pci_dev *pdev, pm_message_t state, bool runtime_pm)
         }
 
         pr_debug("%s: Suspend completes (D0WOW)\n", __func__);
-        HIFCancelDeferredTargetSleep(sc->hif_device);
         ret = 0;
         goto out;
     }
@@ -2864,9 +2863,6 @@ skip:
                    __func__, runtime_pm ? " for runtime pm" : "",
                    wma_is_wow_mode_selected(temp_module) ? " wow" : " pdev",
                    state.event, val);
-    pr_debug("%s: Suspend completes%s\n", __func__,
-            runtime_pm ? " for runtime pm" : "");
-
     ret = 0;
 
 out:
