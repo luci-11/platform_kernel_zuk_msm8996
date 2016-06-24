@@ -205,17 +205,6 @@ enum msm_ir_led_cfg_type_t {
 #define CFG_IR_LED_OFF CFG_IR_LED_OFF
 #define CFG_IR_LED_ON CFG_IR_LED_ON
 
-enum msm_ir_cut_cfg_type_t {
-	CFG_IR_CUT_INIT = 0,
-	CFG_IR_CUT_RELEASE,
-	CFG_IR_CUT_OFF,
-	CFG_IR_CUT_ON,
-};
-#define CFG_IR_CUT_INIT CFG_IR_CUT_INIT
-#define CFG_IR_CUT_RELEASE CFG_IR_CUT_RELEASE
-#define CFG_IR_CUT_OFF CFG_IR_CUT_OFF
-#define CFG_IR_CUT_ON CFG_IR_CUT_ON
-
 enum msm_sensor_output_format_t {
 	MSM_SENSOR_BAYER,
 	MSM_SENSOR_YCBCR,
