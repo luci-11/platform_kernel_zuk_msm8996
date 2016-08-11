@@ -1217,95 +1217,6 @@ exit:
 	return rc;
 }
 
-static int set_buffer_size(struct msm_vidc_inst *inst,
-				u32 buffer_size, enum hal_buffer buffer_type)
-{
-	int rc = 0;
-	struct hfi_device *hdev;
-	struct hal_buffer_size_minimum b;
-
-	if (!inst || !inst->core || !inst->core->device) {
-		dprintk(VIDC_ERR, "%s invalid parameters\n", __func__);
-		return -EINVAL;
-	}
-
-	hdev = inst->core->device;
-
-	dprintk(VIDC_DBG,
-		"Set minimum buffer size = %d for buffer type %d to fw\n",
-		buffer_size, buffer_type);
-
-	b.buffer_type = buffer_type;
-	b.buffer_size = buffer_size;
-	rc = call_hfi_op(hdev, session_set_property,
-			 inst->session, HAL_PARAM_BUFFER_SIZE_MINIMUM,
-			 &b);
-	if (rc)
-		dprintk(VIDC_ERR,
-			"%s - failed to set actual buffer size %u on firmware\n",
-			__func__, buffer_size);
-	return rc;
-}
-
-static int update_output_buffer_size(struct msm_vidc_inst *inst,
-		struct v4l2_format *f, int num_planes)
-{
-	int rc = 0, i = 0;
-	struct hal_buffer_requirements *bufreq;
-
-	if (!inst || !f)
-		return -EINVAL;
-
-	/*
-	 * Firmware expects driver to always set the minimum buffer
-	 * size negotiated with the v4l2 client. Firmware will use this
-	 * size to check for buffer sufficiency in dynamic buffer mode.
-	 */
-	for (i = 0; i < num_planes; ++i) {
-		enum hal_buffer type = msm_comm_get_hal_output_buffer(inst);
-
-		if (EXTRADATA_IDX(num_planes) &&
-			i == EXTRADATA_IDX(num_planes))
-			continue;
-
-		bufreq = get_buff_req_buffer(inst, type);
-		if (!bufreq)
-			goto exit;
-
-		if (f->fmt.pix_mp.plane_fmt[i].sizeimage >=
-			bufreq->buffer_size) {
-			rc = set_buffer_size(inst,
-				f->fmt.pix_mp.plane_fmt[i].sizeimage, type);
-			if (rc)
-				goto exit;
-		}
-	}
-
-	/*
-	 * Set min buffer size for DPB buffers as well.
-	 * Firmware mandates setting of minimum buffer size
-	 * and actual buffer count for both OUTPUT and OUTPUT2.
-	 * Hence we are setting back the same buffer size
-	 * information back to firmware.
-	 */
-	if (msm_comm_get_stream_output_mode(inst) ==
-		HAL_VIDEO_DECODER_SECONDARY) {
-		bufreq = get_buff_req_buffer(inst, HAL_BUFFER_OUTPUT);
-		if (!bufreq) {
-			rc = -EINVAL;
-			goto exit;
-		}
-
-		rc = set_buffer_size(inst, bufreq->buffer_size,
-			HAL_BUFFER_OUTPUT);
-		if (rc)
-			goto exit;
-	}
-
-exit:
-	return rc;
-}
-
 static int set_default_properties(struct msm_vidc_inst *inst)
 {
 	struct hfi_device *hdev;
@@ -1794,9 +1705,9 @@ static inline int start_streaming(struct msm_vidc_inst *inst)
 	struct msm_vidc_format *fmt = NULL;
 
 	fmt = inst->fmts[CAPTURE_PORT];
-	buffer_size = get_output_frame_size(inst, fmt,
+	buffer_size = fmt->get_frame_size(0,
 		inst->prop.height[CAPTURE_PORT],
-		inst->prop.width[CAPTURE_PORT], 0);
+		inst->prop.width[CAPTURE_PORT]);
 	hdev = inst->core->device;
 
 	if (msm_comm_get_stream_output_mode(inst) ==
