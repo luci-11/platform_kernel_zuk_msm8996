@@ -114,11 +114,28 @@ static ssize_t synaptics_rmi4_full_pm_cycle_show(struct device *dev,
 static ssize_t synaptics_rmi4_full_pm_cycle_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count);
 
-#if defined(CONFIG_FB)
-static void fb_notify_resume_work(struct work_struct *work);
-static int fb_notifier_callback(struct notifier_block *self,
-				unsigned long event, void *data);
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
+static ssize_t synaptics_secure_touch_show(struct device *dev,
+	    struct device_attribute *attr, char *buf);
+#endif
+
+#ifdef CONFIG_FB
+static int synaptics_rmi4_fb_notifier_cb_jdi(struct notifier_block *self,
+		unsigned long event, void *data);
+static int synaptics_rmi4_fb_notifier_cb_lgd(struct notifier_block *self,
+		unsigned long event, void *data);
+#endif
+
+static void mdss_regulator_ctrl(struct synaptics_rmi4_data *rmi4_data, bool enable);
+
+static void synaptics_key_ctrl(struct synaptics_rmi4_data *rmi4_data, bool enable);
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#ifndef CONFIG_FB
+#define USE_EARLYSUSPEND
+#endif
+#endif
+
+#ifdef USE_EARLYSUSPEND
 static void synaptics_rmi4_early_suspend(struct early_suspend *h);
 
 static void synaptics_rmi4_late_resume(struct early_suspend *h);
@@ -1476,16 +1493,43 @@ static irqreturn_t synaptics_rmi4_irq(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
- /**
- * synaptics_rmi4_irq_enable()
- *
- * Called by synaptics_rmi4_probe() and the power management functions
- * in this driver and also exported to other expansion Function modules
- * such as rmi_dev.
- *
- * This function handles the enabling and disabling of the attention
- * irq including the setting up of the ISR thread.
- */
+static int synaptics_rmi4_int_enable(struct synaptics_rmi4_data *rmi4_data,
+		bool enable)
+{
+	int retval = 0;
+	unsigned char ii;
+	unsigned char zero = 0x00;
+	unsigned char *intr_mask;
+	unsigned short intr_addr;
+
+	intr_mask = rmi4_data->intr_mask;
+
+	for (ii = 0; ii < rmi4_data->num_of_intr_regs; ii++) {
+		if (intr_mask[ii] != 0x00) {
+			intr_addr = rmi4_data->f01_ctrl_base_addr + 1 + ii;
+			if (enable) {
+				retval = synaptics_rmi4_reg_write(rmi4_data,
+						intr_addr,
+						&(intr_mask[ii]),
+						sizeof(intr_mask[ii]));
+				if (retval < 0)
+					return retval;
+			} else {
+				retval = synaptics_rmi4_reg_write(rmi4_data,
+						intr_addr,
+						&zero,
+						sizeof(zero));
+				if (retval < 0)
+					return retval;
+			}
+		}
+	}
+
+	synaptics_key_ctrl(rmi4_data, enable && rmi4_data->button_0d_enabled);
+
+	return retval;
+}
+
 static int synaptics_rmi4_irq_enable(struct synaptics_rmi4_data *rmi4_data,
 		bool enable)
 {
