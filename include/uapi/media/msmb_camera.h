@@ -23,9 +23,12 @@
 #define MSM_CAM_V4L2_IOCTL_NOTIFY_DEBUG \
 	_IOW('V', BASE_VIDIOC_PRIVATE + 34, struct msm_v4l2_event_data)
 
+<<<<<<< HEAD
 #define MSM_CAM_V4L2_IOCTL_DAEMON_DISABLED \
 	_IOW('V', BASE_VIDIOC_PRIVATE + 35, struct msm_v4l2_event_data)
 
+=======
+>>>>>>> 1bffb22... msm: camera: uapi header split
 #define QCAMERA_DEVICE_GROUP_ID	1
 #define QCAMERA_VNODE_GROUP_ID	2
 #define MSM_CAMERA_NAME			"msm_camera"
@@ -48,9 +51,13 @@
 #define MSM_CAMERA_SUBDEV_SENSOR_INIT  14
 #define MSM_CAMERA_SUBDEV_OIS          15
 #define MSM_CAMERA_SUBDEV_FLASH        16
+<<<<<<< HEAD
 #define MSM_CAMERA_SUBDEV_IR_LED       17
 #define MSM_CAMERA_SUBDEV_IR_CUT       18
 #define MSM_CAMERA_SUBDEV_EXT          19
+=======
+#define MSM_CAMERA_SUBDEV_EXT          17
+>>>>>>> 1bffb22... msm: camera: uapi header split
 
 #define MSM_MAX_CAMERA_SENSORS  5
 
@@ -204,6 +211,7 @@ struct msm_camera_user_buf_cont_t {
 	unsigned int buf_idx[MSM_CAMERA_MAX_USER_BUFF_CNT];
 };
 
+<<<<<<< HEAD
 struct msm_camera_return_buf {
 	__u32 index;
 	__u32 reserved;
@@ -223,5 +231,7 @@ struct msm_camera_private_ioctl_arg {
 #define VIDIOC_MSM_CAMERA_PRIVATE_IOCTL_CMD \
 	_IOWR('V', BASE_VIDIOC_PRIVATE, struct msm_camera_private_ioctl_arg)
 
+=======
+>>>>>>> 1bffb22... msm: camera: uapi header split
 #endif
 
