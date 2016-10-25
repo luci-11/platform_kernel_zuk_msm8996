@@ -2112,7 +2112,6 @@ static const struct snd_kcontrol_new ext_ec_ref_mux_ul9 =
 	SOC_DAPM_ENUM_EXT("AUDIO_REF_EC_UL9 MUX Mux",
 		msm_route_ec_ref_rx_enum[0],
 		msm_routing_ec_ref_rx_get, msm_routing_ec_ref_rx_put);
-
 static int msm_routing_ext_ec_get(struct snd_kcontrol *kcontrol,
 				  struct snd_ctl_elem_value *ucontrol)
 {
@@ -2127,8 +2126,8 @@ static int msm_routing_ext_ec_get(struct snd_kcontrol *kcontrol,
 static int msm_routing_ext_ec_put(struct snd_kcontrol *kcontrol,
 				  struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_dapm_widget_list *wlist =
-					dapm_kcontrol_get_wlist(kcontrol);
+       struct snd_soc_dapm_widget_list *wlist =
+                                       dapm_kcontrol_get_wlist(kcontrol);
 	struct snd_soc_dapm_widget *widget = wlist->widgets[0];
 	int mux = ucontrol->value.enumerated.item[0];
 	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
@@ -2143,26 +2142,33 @@ static int msm_routing_ext_ec_put(struct snd_kcontrol *kcontrol,
 	switch (msm_route_ext_ec_ref) {
 	case EXT_EC_REF_PRI_MI2S_TX:
 		ext_ec_ref_port_id = AFE_PORT_ID_PRIMARY_MI2S_TX;
-		break;
+		msm_route_ext_ec_ref = 1;
+ 		break;
 	case EXT_EC_REF_SEC_MI2S_TX:
 		ext_ec_ref_port_id = AFE_PORT_ID_SECONDARY_MI2S_TX;
-		break;
+		msm_route_ext_ec_ref = 2;
+ 		break;
 	case EXT_EC_REF_TERT_MI2S_TX:
 		ext_ec_ref_port_id = AFE_PORT_ID_TERTIARY_MI2S_TX;
-		break;
+		msm_route_ext_ec_ref = 3;
+ 		break;
 	case EXT_EC_REF_QUAT_MI2S_TX:
 		ext_ec_ref_port_id = AFE_PORT_ID_QUATERNARY_MI2S_TX;
-		break;
+		msm_route_ext_ec_ref = 4;
+ 		break;
 	case EXT_EC_REF_QUIN_MI2S_TX:
 		ext_ec_ref_port_id = AFE_PORT_ID_QUINARY_MI2S_TX;
-		break;
+		msm_route_ext_ec_ref = 5;
+ 		break;
 	case EXT_EC_REF_SLIM_1_TX:
 		ext_ec_ref_port_id = SLIMBUS_1_TX;
-		break;
+		msm_route_ext_ec_ref = 6;
+ 		break;
 	case EXT_EC_REF_NONE:
 	default:
 		ext_ec_ref_port_id = AFE_PORT_INVALID;
-		state = false;
+		msm_route_ext_ec_ref = 0;
+ 		state = false;
 		break;
 	}
 

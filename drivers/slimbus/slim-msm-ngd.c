@@ -26,6 +26,7 @@
 #include <linux/of_slimbus.h>
 #include <linux/timer.h>
 #include <linux/msm-sps.h>
+#include <linux/reboot.h>
 #include "slim-msm.h"
 
 #define NGD_SLIM_NAME	"ngd_msm_ctrl"
@@ -1318,14 +1319,13 @@ capability_retry:
 	/* reconnect BAM pipes if needed and enable NGD */
 	ngd_slim_setup(dev);
 
-	timeout = wait_for_completion_timeout(&dev->reconf, HZ);
+	timeout = wait_for_completion_timeout(&dev->reconf, 3 * HZ);
 	if (!timeout) {
 		u32 cfg = readl_relaxed(dev->base +
 					 NGD_BASE(dev->ctrl.nr, dev->ver));
 		laddr = readl_relaxed(ngd + NGD_STATUS);
-		SLIM_WARN(dev,
-			  "slim capability time-out:%d, stat:0x%x,cfg:0x%x\n",
-				retries, laddr, cfg);
+		printk("capability exchange timed-out, Now to machine_restart!!!\n");
+		machine_restart("slim_power_up");
 		if ((retries < INIT_MX_RETRIES) &&
 				!atomic_read(&dev->ssr_in_progress)) {
 			retries++;
