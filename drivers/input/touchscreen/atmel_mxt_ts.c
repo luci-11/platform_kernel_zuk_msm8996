@@ -1726,13 +1726,31 @@ static int mxt_initialize(struct mxt_data *data)
 	if (error)
 		goto err_free_object_table;
 
-	error = request_firmware_nowait(THIS_MODULE, true, MXT_CFG_NAME,
-					&client->dev, GFP_KERNEL, data,
-					mxt_config_cb);
-	if (error) {
-		dev_err(&client->dev, "Failed to invoke firmware loader: %d\n",
-			error);
-		goto err_free_object_table;
+#ifdef CONFIG_FB
+extern bool mdss_panel_is_prim(struct fb_info *fbi);
+static int fb_notifier_cb(struct notifier_block *self,
+			unsigned long event, void *data)
+{
+	struct fb_event *evdata = data;
+	int *blank;
+	struct mxt_data *mxt_data =
+		container_of(self, struct mxt_data, fb_notif);
+
+	/* Receive notifications from primary panel only */
+	if (evdata && evdata->data && mxt_data && mdss_panel_is_prim(evdata->info)) {
+		blank = evdata->data;
+		if (event == FB_EVENT_BLANK) {
+			if (*blank == FB_BLANK_UNBLANK) {
+				schedule_delayed_work(&mxt_data->calibration_delayed_work, msecs_to_jiffies(100));
+			}
+		} else if (event == FB_EARLY_EVENT_BLANK) {
+			blank = evdata->data;
+			if (*blank == FB_BLANK_UNBLANK || *blank == FB_BLANK_NORMAL) {
+				mxt_input_enable(mxt_data->input_dev);
+			} else if (*blank == FB_BLANK_POWERDOWN) {
+				mxt_input_disable(mxt_data->input_dev);
+			}
+		}
 	}
 
 	return 0;
