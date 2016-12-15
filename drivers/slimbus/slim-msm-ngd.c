@@ -1324,8 +1324,9 @@ capability_retry:
 		u32 cfg = readl_relaxed(dev->base +
 					 NGD_BASE(dev->ctrl.nr, dev->ver));
 		laddr = readl_relaxed(ngd + NGD_STATUS);
-		printk("capability exchange timed-out, Now to machine_restart!!!\n");
-		machine_restart("slim_power_up");
+		SLIM_WARN(dev,
+			  "slim capability time-out:%d, stat:0x%x,cfg:0x%x\n",
+				retries, laddr, cfg);
 		if ((retries < INIT_MX_RETRIES) &&
 				!atomic_read(&dev->ssr_in_progress)) {
 			retries++;
