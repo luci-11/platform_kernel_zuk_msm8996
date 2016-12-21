@@ -71,9 +71,6 @@ struct nbuf_rx_cb {
 	uint8_t packet_trace;
 };
 
-#define ADF_NBUF_CB_RX_DP_TRACE(skb) \
-	(((struct nbuf_rx_cb*)((skb)->cb))->dp_trace)
-
 #define ADF_NBUF_CB_RX_PACKET_TRACE(skb) \
 	(((struct nbuf_rx_cb*)((skb)->cb))->packet_trace)
 
