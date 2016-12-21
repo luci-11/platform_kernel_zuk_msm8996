@@ -195,6 +195,23 @@ struct msm_vidc_content_light_level_sei_payload {
 	unsigned int nMaxPicAverageLight;
 };
 
+struct msm_vidc_vui_display_info_payload {
+	unsigned int video_signal_present_flag;
+	unsigned int video_format;
+	unsigned int bit_depth_y;
+	unsigned int bit_depth_c;
+	unsigned int video_full_range_flag;
+	unsigned int color_description_present_flag;
+	unsigned int color_primaries;
+	unsigned int transfer_characteristics;
+	unsigned int matrix_coefficients;
+	unsigned int chroma_location_info_present_flag;
+	unsigned int chroma_format_idc;
+	unsigned int separate_color_plane_flag;
+	unsigned int chroma_sample_loc_type_top_field;
+	unsigned int chroma_sample_loc_type_bottom_field;
+};
+
 enum msm_vidc_extradata_type {
 	MSM_VIDC_EXTRADATA_NONE = 0x00000000,
 	MSM_VIDC_EXTRADATA_MB_QUANTIZATION = 0x00000001,
@@ -218,6 +235,9 @@ enum msm_vidc_extradata_type {
 #define MSM_VIDC_EXTRADATA_CONTENT_LIGHT_LEVEL_SEI \
 	MSM_VIDC_EXTRADATA_CONTENT_LIGHT_LEVEL_SEI
 	MSM_VIDC_EXTRADATA_CONTENT_LIGHT_LEVEL_SEI = 0x00000016,
+#define MSM_VIDC_EXTRADATA_PQ_INFO \
+	MSM_VIDC_EXTRADATA_PQ_INFO
+	MSM_VIDC_EXTRADATA_PQ_INFO = 0x00000017,
 	MSM_VIDC_EXTRADATA_INPUT_CROP = 0x0700000E,
 #define MSM_VIDC_EXTRADATA_OUTPUT_CROP \
 	MSM_VIDC_EXTRADATA_OUTPUT_CROP
