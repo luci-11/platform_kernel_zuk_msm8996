@@ -161,18 +161,6 @@ static void clear_last_uid(uid_t uid) {
   spin_unlock_bh(&update_last_uid_lock);
 }
 
-static bool isMobileIface(int hook_num, const char *iface) {
-  bool isMobile = false;
-
-  if(memcmp(iface, MOBILE_IFACE, MOBILE_IFACE_LEN) == 0) {
-    isMobile = true;
-  }
-
-  MT_DEBUG("qtaguid[%d] dev:%s isMobile:%d\n", hook_num, iface, isMobile);
-
-  return isMobile;
-}
-
 /* Guarantied to return a net_device that has a name */
 static void get_dev_and_dir(const struct sk_buff *skb,
 			    struct xt_action_param *par,
