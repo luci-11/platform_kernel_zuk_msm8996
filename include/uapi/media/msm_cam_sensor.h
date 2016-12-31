@@ -350,6 +350,11 @@ enum msm_ois_cfg_type_t {
 	CFG_OIS_I2C_WRITE_SEQ_TABLE,
 };
 
+enum msm_ois_cfg_download_type_t {
+	CFG_OIS_DOWNLOAD,
+	CFG_OIS_DATA_CONFIG,
+};
+
 enum msm_ois_i2c_operation {
 	MSM_OIS_WRITE = 0,
 	MSM_OIS_POLL,
