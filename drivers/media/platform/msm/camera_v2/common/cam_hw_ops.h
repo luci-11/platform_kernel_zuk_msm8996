@@ -39,8 +39,5 @@ enum cam_ahb_clk_client {
 int cam_config_ahb_clk(struct device *dev, unsigned long freq,
 	enum cam_ahb_clk_client id, enum cam_ahb_clk_vote vote);
 int cam_ahb_clk_init(struct platform_device *pdev);
-<<<<<<< HEAD
-#endif
-=======
 #endif /* _CAM_HW_OPS_H_ */
->>>>>>> a9b3b90... msm: camera: Change API to populate regulator name
+

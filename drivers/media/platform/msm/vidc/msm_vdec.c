@@ -652,20 +652,6 @@ static u32 get_frame_size(struct msm_vidc_inst *inst,
 	return frame_size;
 }
 
-static u32 get_output_frame_size(struct msm_vidc_inst *inst,
-					const struct msm_vidc_format *fmt,
-					u32 height, u32 width, int plane)
-{
-	u32 frame_size = fmt->get_frame_size(plane,
-					height, width);
-	if (inst->flags & VIDC_SECURE) {
-		u32 alignment = inst->core->resources.slave_side_cp ?
-			SLAVE_SIDE_CP_ALIGNMENT : MASTER_SIDE_CP_ALIGNMENT;
-		frame_size = MSM_MEDIA_ALIGN(frame_size, alignment);
-	}
-	return frame_size;
-}
-
 static int is_ctrl_valid_for_codec(struct msm_vidc_inst *inst,
 					struct v4l2_ctrl *ctrl)
 {

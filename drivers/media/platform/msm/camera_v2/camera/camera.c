@@ -474,37 +474,6 @@ static int camera_v4l2_unsubscribe_event(struct v4l2_fh *fh,
 	return rc;
 }
 
-static long camera_v4l2_vidioc_private_ioctl(struct file *filep, void *fh,
-	bool valid_prio, unsigned int cmd, void *arg)
-{
-	struct camera_v4l2_private *sp = fh_to_private(fh);
-	struct msm_video_device *pvdev = video_drvdata(filep);
-	struct msm_camera_private_ioctl_arg *k_ioctl = arg;
-	long rc = -EINVAL;
-
-	if (WARN_ON(!k_ioctl || !pvdev))
-		return -EIO;
-
-	switch (k_ioctl->id) {
-	case MSM_CAMERA_PRIV_IOCTL_ID_RETURN_BUF: {
-		struct msm_camera_return_buf ptr, *tmp = NULL;
-
-		MSM_CAM_GET_IOCTL_ARG_PTR(&tmp, &k_ioctl->ioctl_ptr,
-			sizeof(tmp));
-		if (copy_from_user(&ptr, tmp,
-			sizeof(struct msm_camera_return_buf))) {
-			return -EFAULT;
-		}
-		rc = msm_vb2_return_buf_by_idx(pvdev->vdev->num, sp->stream_id,
-			ptr.index);
-		}
-		break;
-	default:
-		pr_debug("unimplemented id %d", k_ioctl->id);
-		return -EINVAL;
-	}
-	return rc;
-}
 
 static const struct v4l2_ioctl_ops camera_v4l2_ioctl_ops = {
 	.vidioc_querycap = camera_v4l2_querycap,
@@ -530,7 +499,6 @@ static const struct v4l2_ioctl_ops camera_v4l2_ioctl_ops = {
 	/* event subscribe/unsubscribe */
 	.vidioc_subscribe_event = camera_v4l2_subscribe_event,
 	.vidioc_unsubscribe_event = camera_v4l2_unsubscribe_event,
-	.vidioc_default = camera_v4l2_vidioc_private_ioctl,
 };
 
 static int camera_v4l2_fh_open(struct file *filep)
@@ -640,9 +608,6 @@ static int camera_v4l2_open(struct file *filep)
 	if (!atomic_read(&pvdev->opened)) {
 		pm_stay_awake(&pvdev->vdev->dev);
 
-		/* Disable power collapse latency */
-		msm_pm_qos_update_request(CAMERA_DISABLE_PC_LATENCY);
-
 		/* create a new session when first opened */
 		rc = msm_create_session(pvdev->vdev->num, pvdev->vdev);
 		if (rc < 0) {
@@ -675,8 +640,6 @@ static int camera_v4l2_open(struct file *filep)
 			if (rc < 0)
 				goto post_fail;
 		}
-		/* Enable power collapse latency */
-		msm_pm_qos_update_request(CAMERA_ENABLE_PC_LATENCY);
 	} else {
 		rc = msm_create_command_ack_q(pvdev->vdev->num,
 			find_first_zero_bit((const unsigned long *)&opn_idx,
@@ -779,74 +742,12 @@ static int camera_v4l2_close(struct file *filep)
 	return 0;
 }
 
-#ifdef CONFIG_COMPAT
-static long camera_handle_internal_compat_ioctl(struct file *file,
-		unsigned int cmd, unsigned long arg)
-{
-	long rc = 0;
-	struct msm_camera_private_ioctl_arg k_ioctl;
-	void __user *tmp_compat_ioctl_ptr = NULL;
-
-	rc = msm_copy_camera_private_ioctl_args(arg,
-		&k_ioctl, &tmp_compat_ioctl_ptr);
-	if (rc < 0) {
-		pr_err("Subdev cmd %d failed\n", cmd);
-		return rc;
-	}
-	switch (k_ioctl.id) {
-	case MSM_CAMERA_PRIV_IOCTL_ID_RETURN_BUF: {
-		if (k_ioctl.size != sizeof(struct msm_camera_return_buf)) {
-			pr_debug("Invalid size for id %d with size %d",
-				k_ioctl.id, k_ioctl.size);
-			return -EINVAL;
-		}
-		k_ioctl.ioctl_ptr = (__u64)tmp_compat_ioctl_ptr;
-		if (!k_ioctl.ioctl_ptr) {
-			pr_debug("Invalid ptr for id %d", k_ioctl.id);
-			return -EINVAL;
-		}
-		rc = camera_v4l2_vidioc_private_ioctl(file, file->private_data,
-			0, cmd, (void *)&k_ioctl);
-		}
-		break;
-	default:
-		pr_debug("unimplemented id %d", k_ioctl.id);
-		return -EINVAL;
-	}
-	return rc;
-}
-
-long camera_v4l2_compat_ioctl(struct file *file, unsigned int cmd,
-	unsigned long arg)
-{
-	long ret = 0;
-
-	switch (cmd) {
-	case VIDIOC_MSM_CAMERA_PRIVATE_IOCTL_CMD: {
-		ret = camera_handle_internal_compat_ioctl(file, cmd, arg);
-		if (ret < 0) {
-			pr_debug("Subdev cmd %d fail\n", cmd);
-			return ret;
-		}
-		}
-		break;
-	default:
-		ret = -ENOIOCTLCMD;
-		break;
-
-	}
-	return ret;
-}
-#endif
 static struct v4l2_file_operations camera_v4l2_fops = {
 	.owner   = THIS_MODULE,
 	.open	= camera_v4l2_open,
 	.poll	= camera_v4l2_poll,
 	.release = camera_v4l2_close,
 	.ioctl   = video_ioctl2,
-#ifdef CONFIG_COMPAT
-	.compat_ioctl32 = camera_v4l2_compat_ioctl,
-#endif
 };
 
 int camera_init_v4l2(struct device *dev, unsigned int *session)

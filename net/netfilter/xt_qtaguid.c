@@ -155,6 +155,45 @@ static void clear_last_uid(uid_t uid) {
   spin_unlock_bh(&update_last_uid_lock);
 }
 
+static bool isMobileIface(int hook_num, const char *iface) {
+  bool isMobile = false;
+
+  if(memcmp(iface, MOBILE_IFACE, MOBILE_IFACE_LEN) == 0) {
+    isMobile = true;
+  }
+
+  MT_DEBUG("qtaguid[%d] dev:%s isMobile:%d\n", hook_num, iface, isMobile);
+
+  return isMobile;
+}
+
+static void set_last_uid(uid_t uid, int protocol, int dir, int hook_num, const char *dev_name) {
+  if(uid != ROOT_UID && uid != SYSTEM_UID && isMobileIface(hook_num, dev_name)) {
+    if(protocol == IPPROTO_TCP && dir == IFS_TX) {
+      spin_lock_bh(&update_last_uid_lock);
+      if(uid != g_last_uid) {
+        g_last_uid = uid;
+      }
+      spin_unlock_bh(&update_last_uid_lock);
+      MT_DEBUG("qtaguid[%d] dev:%s set_last_uid:use last_uid:%d proto %d dir:%d\n", hook_num, dev_name,
+        uid, protocol, dir);
+    }
+  }
+}
+
+static uid_t get_last_uid(int protocol, int dir, int hook_num, const char *dev_name) {
+  uid_t uid = ROOT_UID;
+  if(protocol == IPPROTO_TCP && dir == IFS_RX && isMobileIface(hook_num, dev_name)) {
+    spin_lock_bh(&update_last_uid_lock);
+    uid = g_last_uid;
+    spin_unlock_bh(&update_last_uid_lock);
+  }
+
+  MT_DEBUG("qtaguid[%d] dev:%s get_last_uid:use last_uid:%d proto %d dir:%d\n", hook_num, dev_name,
+      uid, protocol, dir);
+  return uid;
+}
+
 /* Guarantied to return a net_device that has a name */
 static void get_dev_and_dir(const struct sk_buff *skb,
 			    struct xt_action_param *par,
@@ -1684,13 +1723,18 @@ static bool qtaguid_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	bool got_sock = false;
 	struct sock *sk;
 	kuid_t sock_uid;
+#ifdef SAVE_LAST_UID
+	uid_t last_uid;
+	int protocol = 0;
+	enum ifs_tx_rx dir = IFS_MAX_DIRECTIONS;
+	const struct net_device *net_dev = NULL;
+#endif
 	bool res;
 	bool set_sk_callback_lock = false;
 	/*
 	 * TODO: unhack how to force just accounting.
 	 * For now we only do tag stats when the uid-owner is not requested
 	 */
-        bool do_tag_stat = !(info->match & XT_QTAGUID_UID);
 
 	if (unlikely(module_passive))
 		return (info->match ^ info->invert) == 0;
