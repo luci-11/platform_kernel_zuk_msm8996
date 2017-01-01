@@ -254,15 +254,6 @@ static long msm_ispif_cmd_ext(struct v4l2_subdev *sd,
 }
 
 #ifdef CONFIG_COMPAT
-static long msm_ispif_subdev_ioctl_compat(struct v4l2_subdev *sd,
-	unsigned int cmd, void *arg)
-{
-	BUG_ON(!sd);
-	switch (cmd) {
-	case VIDIOC_MSM_ISPIF_CFG_EXT_COMPAT:
-		return msm_ispif_cmd_ext(sd, arg);
-
-#ifdef CONFIG_COMPAT
 struct ispif_cfg_data_ext_32 {
 	enum ispif_cfg_type_t cfg_type;
 	compat_caddr_t data;
