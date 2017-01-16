@@ -213,7 +213,6 @@ static struct wcd_mbhc_config wcd_mbhc_cfg = {
 	.moist_cfg = { V_45_MV, I_3P0_UA },
 	.mbhc_micbias = MIC_BIAS_2,
 	.anc_micbias = MIC_BIAS_2,
-	.enable_anc_mic_detect = false,
 };
 
 #define HEADSET_TYPE_STANDARD
