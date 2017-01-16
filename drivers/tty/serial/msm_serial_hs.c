@@ -3143,6 +3143,7 @@ static int msm_hs_pm_resume(struct device *dev)
 		return -ENODEV;
 	}
 
+
 	client_count = atomic_read(&msm_uport->client_count);
 	if (msm_uport->pm_state == MSM_HS_PM_ACTIVE)
 		return 0;
