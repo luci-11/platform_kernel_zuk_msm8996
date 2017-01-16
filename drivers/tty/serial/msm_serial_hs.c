@@ -2304,8 +2304,6 @@ void msm_hs_resource_on(struct msm_hs_port *msm_uport)
 void msm_hs_request_clock_off(struct uart_port *uport)
 {
 	struct msm_hs_port *msm_uport = UARTDM_TO_MSM(uport);
-	int client_count = 0;
-
 
 	if (atomic_read(&msm_uport->client_count) <= 0) {
 		MSM_HS_WARN("%s(): ioctl count -ve, client check voting",
@@ -2331,9 +2329,8 @@ void msm_hs_request_clock_on(struct uart_port *uport)
 
 	atomic_inc(&msm_uport->client_count);
 	client_count = atomic_read(&msm_uport->client_count);
-	LOG_USR_MSG(msm_uport->ipc_msm_hs_pwr_ctxt,
-			"%s: Client_Count %d\n", __func__,
-			client_count);
+	MSM_HS_INFO("%s():ENABLE UART CLOCK: ioc %d\n",
+		__func__, client_count);
 	msm_hs_resource_vote(UARTDM_TO_MSM(uport));
 
 	/* Clear the flag */
@@ -3157,6 +3154,7 @@ static int msm_hs_pm_resume(struct device *dev)
 		MSM_HS_ERR("%s:Failed clock vote %d\n", __func__, ret);
 		dev_err(dev, "%s:Failed clock vote %d\n", __func__, ret);
 	}
+	__pm_stay_awake(&msm_uport->ws);
 	obs_manage_irq(msm_uport, true);
 	msm_uport->pm_state = MSM_HS_PM_ACTIVE;
 	msm_hs_resource_on(msm_uport);
@@ -3172,7 +3170,7 @@ static int msm_hs_pm_resume(struct device *dev)
 
 	LOG_USR_MSG(msm_uport->ipc_msm_hs_pwr_ctxt,
 		"%s:PM State:Active client_count %d\n", __func__, client_count);
-	return ret;
+	return 0;
 }
 
 #ifdef CONFIG_PM
@@ -3225,10 +3223,8 @@ static int msm_hs_pm_sys_resume_noirq(struct device *dev)
 	 * variable. Resource activation will be done
 	 * when transfer is requested.
 	 */
-
+	MSM_HS_DBG("%s(): system resume", __func__);
 	msm_uport->pm_state = MSM_HS_PM_SUSPENDED;
-	LOG_USR_MSG(msm_uport->ipc_msm_hs_pwr_ctxt,
-		"%s:PM State: Suspended\n", __func__);
 	return 0;
 }
 #endif
@@ -3683,12 +3679,6 @@ static void msm_hs_shutdown(struct uart_port *uport)
 	if (atomic_read(&msm_uport->client_req_state)) {
 		MSM_HS_WARN("%s: Client clock vote imbalance\n", __func__);
 		atomic_set(&msm_uport->client_req_state, 0);
-	}
-	if (atomic_read(&msm_uport->client_count)) {
-		MSM_HS_WARN("%s: Client vote on, forcing to 0\n", __func__);
-		atomic_set(&msm_uport->client_count, 0);
-		LOG_USR_MSG(msm_uport->ipc_msm_hs_pwr_ctxt,
-			"%s: Client_Count 0\n", __func__);
 	}
 	msm_hs_unconfig_uart_gpios(uport);
 	MSM_HS_INFO("%s:UART port closed successfully\n", __func__);
