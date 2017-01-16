@@ -2476,7 +2476,6 @@ static int  mdss_dsi_panel_config_res_properties(struct device_node *np,
 	int rc = 0;
 
 	mdss_dsi_parse_roi_alignment(np, pt);
-
 #ifdef CONFIG_PRODUCT_Z2_PLUS
 		lcd_data = lcd_otm1901a_data;
 #elif defined CONFIG_PRODUCT_Z2_X

@@ -4598,6 +4598,28 @@ static int mdss_fb_panel_effect(struct msm_fb_data_type *mfd,
 	return ret;
 }
 
+static int mdss_fb_panel_effect(struct msm_fb_data_type *mfd,
+						unsigned long *argp)
+{
+	int ret, rc;
+	struct hal_panel_ctrl_data data;
+	ret = copy_from_user(&data, argp,
+			sizeof(data));
+	if (ret) {
+		pr_err("%s:copy_from_user failed", __func__);
+		return ret;
+	}
+
+	ret = handle_lcd_effect_data(mfd, &lcd_data, &data);
+	rc = copy_to_user(argp, &data, sizeof(data));
+	if (rc) {
+		pr_err("%s:copy_to_user failed", __func__);
+		return rc;
+	}
+
+	return ret;
+}
+
 static int mdss_fb_atomic_commit_ioctl(struct fb_info *info,
 	unsigned long *argp, struct file *file)
 {
