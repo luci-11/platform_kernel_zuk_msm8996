@@ -18,6 +18,7 @@
  *                     FREQUENCY TABLE HELPERS                       *
  *********************************************************************/
 
+extern unsigned int overfreq_enable;
 bool policy_has_boost_freq(struct cpufreq_policy *policy)
 {
 	struct cpufreq_frequency_table *pos, *table = policy->freq_table;
