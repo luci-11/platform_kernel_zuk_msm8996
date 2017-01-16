@@ -641,6 +641,12 @@ static struct battery_status batt_s[] = {
 	[BATT_MISSING] = {0, 0, 0, 1, 0},
 };
 
+static int smb1351_version = 0;
+module_param_named(
+	smb1351_version, smb1351_version,
+	int, S_IRUSR | S_IWUSR
+);
+
 static void smb1351_stay_awake(struct smb1351_wakeup_source *source,
 					enum wakeup_src wk_src)
 {
@@ -671,11 +677,6 @@ static void smb1351_wakeup_src_init(struct smb1351_charger *chip)
 	spin_lock_init(&chip->smb1351_ws.ws_lock);
 	wakeup_source_init(&chip->smb1351_ws.source, "smb1351");
 }
-static int smb1351_version = 0;
-module_param_named(
-	smb1351_version, smb1351_version,
-	int, S_IRUSR | S_IWUSR
-);
 
 static int smb1351_read_reg(struct smb1351_charger *chip, int reg, u8 *val)
 {

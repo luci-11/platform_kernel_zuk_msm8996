@@ -5475,6 +5475,7 @@ static irqreturn_t fg_batt_missing_irq_handler(int irq, void *_chip)
 static irqreturn_t fg_batt_ided_irq_handler(int irq, void *_chip)
 {
 	pr_info("battery id trigger\n");
+
 	return IRQ_HANDLED;
 }
 #endif
