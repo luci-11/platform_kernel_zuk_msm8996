@@ -43,15 +43,11 @@
 #define SUPPORT_CALL_POWER_OP
 #define SUPPORT_SOC_SHOW_OPTIMIZATION
 #define SUPPORT_CPU_TEMP_MONITOR
-#ifdef CONFIG_PRODUCT_Z2_PLUS
 #define SUPPORT_LENUK_BATTERY_ID_ALGO
-#endif
-//#define SUPPORT_QPNP_NOISE_LOG
 
 #ifdef SUPPORT_CPU_TEMP_MONITOR
 #include <linux/msm_tsens.h>
 #endif
-#define LENUK_FIX_WARM_CAP_LEARNING_PROCESS
 
 #ifdef SUPPORT_BATT_TEMP_FLOAT_ALGO
 #ifdef CONFIG_PRODUCT_Z2_ROW
@@ -691,11 +687,7 @@ struct fg_chip {
 	bool			batt_info_restore;
 	bool			*batt_range_ocv;
 	int			*batt_range_pct;
-
-#ifdef  SUPPORT_SOC_SHOW_OPTIMIZATION
-	ktime_t 		soc_kt;
-	u8	 		is_op_soc;
-#endif
+	
 #ifdef QPNP_FG_SOC_CHANGED_EVENT
 	int			monotonic_soc_old;
 #endif
@@ -1982,10 +1974,8 @@ static int fg_backup_sram_registers(struct fg_chip *chip, bool save)
 	u16 address;
 	u8 *ptr;
 
-#ifdef SUPPORT_QPNP_NOISE_LOG
 	if (fg_debug_mask & FG_STATUS)
 		pr_info("%sing SRAM registers\n", save ? "Back" : "Restor");
-#endif
 
 	ptr = sram_backup_buffer;
 	for (i = 0; i < FG_BACKUP_MAX; i++) {
@@ -2272,43 +2262,15 @@ static int bound_soc(int soc)
         return soc;
 }
 
-#define LENUK_OP_SOC			86
-#define LENUK_SOC_MIN_CHANGE_MS		25000
 static int soc_remap(struct fg_chip *chip, int soc)
 {
         int mapped_soc = 0;
 
-	if(soc == LENUK_OP_SOC) {
-		if (!chip->is_op_soc) {
-			chip->soc_kt = ktime_get_boottime();
-			mapped_soc = soc;
-			chip->is_op_soc = 1;
-		} else {
-			ktime_t now_kt, delta_kt;
-			int delta_ms;
-
-			now_kt = ktime_get_boottime();
-			delta_kt = ktime_sub(now_kt, chip->soc_kt);
-			delta_ms = (int)div64_s64(ktime_to_ns(delta_kt), 1000000);
-
-			if (delta_ms <= LENUK_SOC_MIN_CHANGE_MS) {
-				if (chip->status == POWER_SUPPLY_STATUS_CHARGING)
-					mapped_soc = soc;
-				else
-					mapped_soc = soc + 1;
-			} else {
-				if (chip->status == POWER_SUPPLY_STATUS_CHARGING)
-					mapped_soc = soc + 1;
-				else
-					mapped_soc = soc;
-			}
-		}
-	} else if(soc > LENUK_OP_SOC) {
+        if(soc >= 90)
+        {
                 mapped_soc = bound_soc(soc + 1);
-		chip->is_op_soc = 0;
         } else {
                 mapped_soc = bound_soc(soc);
-		chip->is_op_soc = 0;
 	}
 
 	return mapped_soc;
@@ -2420,12 +2382,10 @@ static int64_t get_batt_id(unsigned int battery_id_uv, u8 bid_info)
 #define DEFAULT_TEMP_DEGC	250
 static int get_sram_prop_now(struct fg_chip *chip, unsigned int type)
 {
-#ifdef SUPPORT_QPNP_NOISE_LOG
 	if (fg_debug_mask & FG_POWER_SUPPLY)
 		pr_info("addr 0x%02X, offset %d value %d\n",
 			fg_data[type].address, fg_data[type].offset,
 			fg_data[type].value);
-#endif
 
 	if (type == FG_DATA_BATT_ID)
 		return get_batt_id(fg_data[type].value,
@@ -2438,11 +2398,9 @@ static int get_sram_prop_now(struct fg_chip *chip, unsigned int type)
 #define MAX_TEMP_DEGC	970
 static int get_prop_jeita_temp(struct fg_chip *chip, unsigned int type)
 {
-#ifdef SUPPORT_QPNP_NOISE_LOG
 	if (fg_debug_mask & FG_POWER_SUPPLY)
 		pr_info("addr 0x%02X, offset %d\n", settings[type].address,
 			settings[type].offset);
-#endif
 
 	return settings[type].value;
 }
@@ -2452,12 +2410,10 @@ static int set_prop_jeita_temp(struct fg_chip *chip,
 {
 	int rc = 0;
 
-#ifdef SUPPORT_QPNP_NOISE_LOG
 	if (fg_debug_mask & FG_POWER_SUPPLY)
 		pr_info("addr 0x%02X, offset %d temp%d\n",
 			settings[type].address,
 			settings[type].offset, decidegc);
-#endif
 
 	settings[type].value = decidegc;
 
@@ -3859,16 +3815,6 @@ static void fg_cap_learning_post_process(struct fg_chip *chip)
 		return;
 	}
 
-#ifdef LENUK_FIX_WARM_CAP_LEARNING_PROCESS
-	{
-		int capacity = get_prop_capacity(chip);
-
-		if (capacity < 99) {
-			pr_err("( soc %d < 99) Stop capacity learning process!\n", capacity);
-			return;
-		}
-	}
-#endif
 	max_inc_val = chip->learning_data.learned_cc_uah
 			* (1000 + chip->learning_data.max_increment);
 	do_div(max_inc_val, 1000);
@@ -4704,6 +4650,13 @@ static int fg_power_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
 		val->intval = get_prop_capacity(chip);
+#ifdef SUPPORT_CALL_POWER_OP
+#define CALLING_EMPTY_CAPACITY	1
+		if ((val->intval == EMPTY_CAPACITY) && (g_call_status)) {
+			pr_info("a call is in progress, do not power off\n");
+			val->intval = CALLING_EMPTY_CAPACITY;
+		}
+#endif
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY_RAW:
 		val->intval = get_sram_prop_now(chip, FG_DATA_BATT_SOC);
@@ -5328,6 +5281,98 @@ recheck:
 
 #define BATT_SOFT_COLD_STS	BIT(0)
 #define BATT_SOFT_HOT_STS	BIT(1)
+static irqreturn_t fg_jeita_soft_hot_irq_handler(int irq, void *_chip)
+{
+	int rc;
+	struct fg_chip *chip = _chip;
+	u8 regval;
+	bool batt_warm;
+	union power_supply_propval val = {0, };
+
+	if (!is_charger_available(chip))
+		return IRQ_HANDLED;
+
+	rc = fg_read(chip, &regval, INT_RT_STS(chip->batt_base), 1);
+	if (rc) {
+		pr_err("spmi read failed: addr=%03X, rc=%d\n",
+				INT_RT_STS(chip->batt_base), rc);
+		return IRQ_HANDLED;
+	}
+
+	batt_warm = !!(regval & BATT_SOFT_HOT_STS);
+	if (chip->batt_warm == batt_warm) {
+		pr_debug("warm state not change, ignore!\n");
+		return IRQ_HANDLED;
+	}
+
+	chip->batt_warm = batt_warm;
+	if (batt_warm) {
+		val.intval = POWER_SUPPLY_HEALTH_WARM;
+		chip->batt_psy->set_property(chip->batt_psy,
+			POWER_SUPPLY_PROP_HEALTH, &val);
+		/* kick the alarm timer for hard hot polling */
+		rc = alarm_start_relative(&chip->hard_jeita_alarm,
+				ns_to_ktime(HARD_JEITA_ALARM_CHECK_NS));
+		if (rc)
+			pr_err("start alarm for hard HOT detection failed, rc=%d\n",
+									rc);
+	} else {
+		val.intval = POWER_SUPPLY_HEALTH_GOOD;
+		chip->batt_psy->set_property(chip->batt_psy,
+			POWER_SUPPLY_PROP_HEALTH, &val);
+		/* cancel the alarm timer */
+		alarm_try_to_cancel(&chip->hard_jeita_alarm);
+	}
+
+	return IRQ_HANDLED;
+}
+
+static irqreturn_t fg_jeita_soft_cold_irq_handler(int irq, void *_chip)
+{
+	int rc;
+	struct fg_chip *chip = _chip;
+	u8 regval;
+	bool batt_cool;
+	union power_supply_propval val = {0, };
+
+	if (!is_charger_available(chip))
+		return IRQ_HANDLED;
+
+	rc = fg_read(chip, &regval, INT_RT_STS(chip->batt_base), 1);
+	if (rc) {
+		pr_err("spmi read failed: addr=%03X, rc=%d\n",
+				INT_RT_STS(chip->batt_base), rc);
+		return IRQ_HANDLED;
+	}
+
+	batt_cool = !!(regval & BATT_SOFT_COLD_STS);
+	if (chip->batt_cool == batt_cool) {
+		pr_debug("cool state not change, ignore\n");
+		return IRQ_HANDLED;
+	}
+
+	chip->batt_cool = batt_cool;
+	if (batt_cool) {
+		val.intval = POWER_SUPPLY_HEALTH_COOL;
+		chip->batt_psy->set_property(chip->batt_psy,
+			POWER_SUPPLY_PROP_HEALTH, &val);
+		/* kick the alarm timer for hard cold polling */
+		rc = alarm_start_relative(&chip->hard_jeita_alarm,
+				ns_to_ktime(HARD_JEITA_ALARM_CHECK_NS));
+		if (rc)
+			pr_err("start alarm for hard COLD detection failed, rc=%d\n",
+									rc);
+	} else {
+		val.intval = POWER_SUPPLY_HEALTH_GOOD;
+		chip->batt_psy->set_property(chip->batt_psy,
+			POWER_SUPPLY_PROP_HEALTH, &val);
+		/* cancel the alarm timer */
+		alarm_try_to_cancel(&chip->hard_jeita_alarm);
+	}
+
+	return IRQ_HANDLED;
+}
+
 #define SOC_FIRST_EST_DONE	BIT(5)
 static bool is_first_est_done(struct fg_chip *chip)
 {
@@ -5430,7 +5475,6 @@ static irqreturn_t fg_batt_missing_irq_handler(int irq, void *_chip)
 static irqreturn_t fg_batt_ided_irq_handler(int irq, void *_chip)
 {
 	pr_info("battery id trigger\n");
-
 	return IRQ_HANDLED;
 }
 #endif
@@ -6552,7 +6596,7 @@ wait:
 			goto no_profile;
 		}
 	}
-
+	
 #ifdef SUPPORT_BATT_ID_RECHECK
 	if ((!batt_id_is_vaild(get_sram_prop_now(chip, FG_DATA_BATT_ID))) && (chip->batt_id_redo == -1)) {
 		pr_info("battery id is invaild, do fg reset\n");
@@ -7550,32 +7594,53 @@ static int fg_init_irqs(struct fg_chip *chip)
 			}
 			break;
 		case FG_BATT:
-#ifdef SUPPORT_BATT_ID_RECHECK
-#if 0
-			chip->batt_irq[BATT_IDENTIFIED].irq = spmi_get_irq_byname(
-					chip->spmi, spmi_resource,
-					"batt-ided");
-			if (chip->batt_irq[BATT_IDENTIFIED].irq < 0) {
-				pr_err("Unable to get batt-ided irq\n");
-
+			chip->batt_irq[JEITA_SOFT_COLD].irq =
+				spmi_get_irq_byname(chip->spmi, spmi_resource,
+						"soft-cold");
+			if (chip->batt_irq[JEITA_SOFT_COLD].irq < 0) {
+				pr_err("Unable to get soft-cold irq\n");
 				rc = -EINVAL;
 				return rc;
 			}
 			rc = devm_request_threaded_irq(chip->dev,
-					chip->batt_irq[BATT_IDENTIFIED].irq,
+					chip->batt_irq[JEITA_SOFT_COLD].irq,
 					NULL,
-					fg_batt_ided_irq_handler,
+					fg_jeita_soft_cold_irq_handler,
 					IRQF_TRIGGER_RISING |
 					IRQF_TRIGGER_FALLING |
 					IRQF_ONESHOT,
-					"batt-ided", chip);
+					"soft-cold", chip);
 			if (rc < 0) {
-				pr_err("Can't request %d batt-ided: %d\n",
-					chip->batt_irq[BATT_IDENTIFIED].irq, rc);
+				pr_err("Can't request %d soft-cold: %d\n",
+					chip->batt_irq[JEITA_SOFT_COLD].irq,
+								rc);
 				return rc;
 			}
-#endif
-#endif
+			disable_irq(chip->batt_irq[JEITA_SOFT_COLD].irq);
+			chip->batt_irq[JEITA_SOFT_COLD].disabled = true;
+			chip->batt_irq[JEITA_SOFT_HOT].irq =
+				spmi_get_irq_byname(chip->spmi, spmi_resource,
+					"soft-hot");
+			if (chip->batt_irq[JEITA_SOFT_HOT].irq < 0) {
+				pr_err("Unable to get soft-hot irq\n");
+				rc = -EINVAL;
+				return rc;
+			}
+			rc = devm_request_threaded_irq(chip->dev,
+					chip->batt_irq[JEITA_SOFT_HOT].irq,
+					NULL,
+					fg_jeita_soft_hot_irq_handler,
+					IRQF_TRIGGER_RISING |
+					IRQF_TRIGGER_FALLING |
+					IRQF_ONESHOT,
+					"soft-hot", chip);
+			if (rc < 0) {
+				pr_err("Can't request %d soft-hot: %d\n",
+					chip->batt_irq[JEITA_SOFT_HOT].irq, rc);
+				return rc;
+			}
+			disable_irq(chip->batt_irq[JEITA_SOFT_HOT].irq);
+			chip->batt_irq[JEITA_SOFT_HOT].disabled = true;
 			chip->batt_irq[BATT_MISSING].irq = spmi_get_irq_byname(
 					chip->spmi, spmi_resource,
 					"batt-missing");
@@ -9079,9 +9144,6 @@ static int fg_probe(struct spmi_device *spmi)
 		pr_err("batt failed to register rc = %d\n", rc);
 		goto of_init_fail;
 	}
-#endif
-#ifdef SUPPORT_SOC_SHOW_OPTIMIZATION
-	chip->is_op_soc = 0;
 #endif
 	chip->power_supply_registered = true;
 	/*

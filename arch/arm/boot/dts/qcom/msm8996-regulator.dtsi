@@ -623,9 +623,9 @@
 
 				qcom,cpr-pd-bypass-mask = <0x07>;
 				qcom,cpr-fuse-corners = <5>;
-				qcom,cpr-fuse-combos = <16>;
-				qcom,cpr-speed-bins = <2>;
-				qcom,cpr-speed-bin-corners = <17 13>;
+				qcom,cpr-fuse-combos = <24>;
+				qcom,cpr-speed-bins = <3>;
+				qcom,cpr-speed-bin-corners = <17 13 17>;
 				qcom,cpr-corners =
 					/* Speed bin 0 */
 					<17 17 17 17 17 17 17 17>,
@@ -1245,9 +1245,9 @@
 
 				qcom,cpr-pd-bypass-mask = <0xe0>;
 				qcom,cpr-fuse-corners = <5>;
-				qcom,cpr-fuse-combos = <16>;
-				qcom,cpr-speed-bins = <2>;
-				qcom,cpr-speed-bin-corners = <26 21>;
+				qcom,cpr-fuse-combos = <24>;
+				qcom,cpr-speed-bins = <3>;
+				qcom,cpr-speed-bin-corners = <26 21 26>;
 				qcom,cpr-corners =
 					/* Speed bin 0 */
 					<26 26 26 26 26 26 26 26>,
