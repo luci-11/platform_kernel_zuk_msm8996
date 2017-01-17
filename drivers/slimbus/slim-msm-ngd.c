@@ -1321,8 +1321,6 @@ capability_retry:
 
 	timeout = wait_for_completion_timeout(&dev->reconf, 3 * HZ);
 	if (!timeout) {
-		u32 cfg = readl_relaxed(dev->base +
-					 NGD_BASE(dev->ctrl.nr, dev->ver));
 		laddr = readl_relaxed(ngd + NGD_STATUS);
 		printk("capability exchange timed-out, Now to machine_restart!!!\n");
 		machine_restart("slim_power_up");
