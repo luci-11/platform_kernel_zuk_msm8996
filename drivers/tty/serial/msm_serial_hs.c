@@ -3155,6 +3155,7 @@ static int msm_hs_pm_resume(struct device *dev)
 	if (ret) {
 		MSM_HS_ERR("%s:Failed clock vote %d\n", __func__, ret);
 		dev_err(dev, "%s:Failed clock vote %d\n", __func__, ret);
+                goto exit_pm_resume;
 	}
 	__pm_stay_awake(&msm_uport->ws);
 	obs_manage_irq(msm_uport, true);
