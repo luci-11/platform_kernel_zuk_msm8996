@@ -1,7 +1,7 @@
 #!/bin/bash
 cd ..
 rm -rf modules
-export CONFIG_FILE="msm-perf_defconfig"
+export CONFIG_FILE="lineageos_z2plus_defconfig"
 export ARCH="arm64"
 export CROSS_COMPILE="aarch64-linux-android-"
 export TOOL_CHAIN_PATH="${HOME}/aarch64-linux-android-4.9/bin"
