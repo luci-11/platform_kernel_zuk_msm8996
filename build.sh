@@ -4,11 +4,11 @@ rm -rf modules
 export CONFIG_FILE="msm-perf_defconfig"
 export ARCH="arm64"
 export CROSS_COMPILE="aarch64-linux-android-"
-export TOOL_CHAIN_PATH="${HOME}/caf/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/"
+export TOOL_CHAIN_PATH="${HOME}/aarch64-linux-android-4.9/bin"
 export CONFIG_ABS_PATH="arch/${ARCH}/configs/${CONFIG_FILE}"
 export PATH=$PATH:${TOOL_CHAIN_PATH}
 export objdir="${HOME}/kernel/obj"
-export sourcedir="${HOME}/kernel/msm8996"
+export sourcedir="${HOME}/kernel/android_kernel_zuk_z2_plus"
 cd $sourcedir
 compile() {
   make O=$objdir ARCH=arm64 CROSS_COMPILE=${TOOL_CHAIN_PATH}/${CROSS_COMPILE}  $CONFIG_FILE -j4 
@@ -19,8 +19,8 @@ module(){
   find . -name '*.ko' -exec cp -av {} modules/ \;
   # strip modules 
   ${TOOL_CHAIN_PATH}/${CROSS_COMPILE}strip --strip-unneeded modules/*
-  #mkdir modules/qca_cld
-  #mv modules/wlan.ko modules/qca_cld/qca_cld_wlan.ko
+  #mkdir modules
+  #mv modules/wlan.ko modules/wlan.ko
 }
 dtbuild(){
   cd $sourcedir
