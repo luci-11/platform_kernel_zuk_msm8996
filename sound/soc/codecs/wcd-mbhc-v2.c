@@ -1942,6 +1942,8 @@ static irqreturn_t wcd_mbhc_btn_press_handler(int irq, void *data)
 	}
 	msec_first = jiffies;
 
+	/* send event to sw intr handler*/
+	mbhc->is_btn_press = true;
 	wcd_cancel_btn_work(mbhc);
 	if (wcd_swch_level_remove(mbhc)) {
 		pr_debug("%s: Switch level is low ", __func__);
