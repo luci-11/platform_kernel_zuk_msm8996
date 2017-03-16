@@ -57,6 +57,9 @@ struct fpc1020_data {
 	int screen_on;
 };
 
+extern bool home_button_pressed(void);
+extern void reset_home_button(bool);
+
 static int fb_notifier_callback(struct notifier_block *self, unsigned long event, void *data);
 
 static ssize_t irq_get(struct device* device,
@@ -84,6 +87,7 @@ static ssize_t irq_set(struct device* device,
 		return -ENOENT; 
 	return strnlen(buffer, count);
 }
+
 static DEVICE_ATTR(irq, S_IRUSR | S_IWUSR, irq_get, irq_set);
 
 static ssize_t fp_wl_get(struct device* device,
@@ -111,6 +115,7 @@ static ssize_t fp_wl_set(struct device* device,
 	}
 	return strnlen(buffer, count);
 }
+
 static DEVICE_ATTR(wl, S_IRUSR | S_IWUSR, fp_wl_get, fp_wl_set);
 
 static ssize_t get_wakeup_status(struct device* device,
@@ -163,8 +168,18 @@ static ssize_t set_key(struct device* device,
 	if (!retval) {
 		if (val == KEY_HOME)
 			val = KEY_NAVI_LONG;  //Convert to U-touch long press keyValue
+		
+		if (val != 0 && home_button_pressed()) val = 0;
+		pr_info("home key pressed = %d\n", (int)home_button_pressed());
+		
 		fpc1020->report_key = (int)val;
 		queue_work(fpc1020->fpc1020_wq, &fpc1020->input_report_work);
+		
+		if (val == 0) {
+			pr_info("calling home key reset");
+			reset_home_button(0);
+		}
+		
 	} else
 		return -ENOENT;
 	return strnlen(buffer, count);
@@ -361,6 +376,7 @@ static int fb_notifier_callback(struct notifier_block *self, unsigned long event
 			fpc1020->screen_on = 1;
 		} else if (*blank == FB_BLANK_POWERDOWN) {
 			pr_err("ScreenOff\n");
+			reset_home_button(0);
 			fpc1020->screen_on = 0;
 		}
 	}
